@@ -325,7 +325,7 @@ class Runner():
                 all_labels.extend(labels)
                 all_predictions.extend(predicted_classid)
         
-        print("--labels length--",len(all_labels),"--preds length",len(all_predictions))
+        #Print sklearn classification report
         pprint(classification_report(all_labels,all_predictions,target_names=self.classes))
         # log loss
         average_loss = torch.FloatTensor(all_loss).mean().item()
