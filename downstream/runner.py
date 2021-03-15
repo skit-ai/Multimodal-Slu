@@ -15,6 +15,8 @@ from tensorboardX import SummaryWriter
 from optimizers import get_optimizer
 from schedulers import get_scheduler
 from utility.helper import count_parameters
+from sklearn.metrics import classification_report
+from pprint import pprint
 
 SAMPLE_RATE = 16000
 
@@ -32,7 +34,9 @@ class Runner():
         self.init_ckpt = torch.load(self.args.past_exp, map_location='cpu') if self.args.past_exp else {}
         self.upstream = self._get_upstream()
         self.downstream = self._get_downstream()
-
+        #getattr(importlib.import_module(f'downstream.{self.args.downstream}.dataset'), 'CLASSES') 
+        self.classes = getattr(importlib.import_module(f'downstream.{self.args.downstream}.dataset'), 'CLASSES')
+        #print(self.classes)
         # set up the downstream name used by Tensorboard
         self.downstream_name = self.args.downstream
         if hasattr(self.downstream, 'get_downstream_name'):
@@ -164,7 +168,7 @@ class Runner():
                         with torch.no_grad():
                             features = self.upstream(wavs)
 
-                    loss = self.downstream(
+                    loss,_,_ = self.downstream(
                         features, *others,
                         records = records,
                         logger = self.logger,
@@ -296,6 +300,8 @@ class Runner():
 
         # main evaluation block
         all_loss = []
+        all_labels = []
+        all_predictions = []
         records = defaultdict(list)
         prefix = f'{self.downstream_name}/{split}-'
 
@@ -305,7 +311,7 @@ class Runner():
             with torch.no_grad():
                 features = self.upstream(wavs)
 
-                loss = self.downstream(
+                loss, predicted_classid, labels = self.downstream(
                     features, *others,
                     records = records,
                     logger = self.logger,
@@ -316,7 +322,11 @@ class Runner():
                     batch_num = len(dataloader),
                 )
                 all_loss.append(loss.item())
+                all_labels.extend(labels)
+                all_predictions.extend(predicted_classid)
         
+        print("--labels length--",len(all_labels),"--preds length",len(all_predictions))
+        pprint(classification_report(all_labels,all_predictions,target_names=self.classes))
         # log loss
         average_loss = torch.FloatTensor(all_loss).mean().item()
         self.logger.add_scalar(f'{prefix}loss', average_loss, global_step=global_step)
