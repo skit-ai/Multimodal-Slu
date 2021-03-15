@@ -77,9 +77,9 @@ class DownstreamExpert(nn.Module):
         return self._get_dataloader(self.test_dataset)
 
     # Interface
-    def forward(self, features, labels, records, logger, prefix, global_step, **kwargs):
-        features = pad_sequence(features, batch_first=True)
-        predicted = self.model(features)
+    def forward(self, audio_features,text_features,labels, records, logger, prefix, global_step, **kwargs):
+        audio_features = pad_sequence(audio_features, batch_first=True)
+        predicted = self.model(audio_features,text_features)
 
         labels = torch.LongTensor(labels).to(features.device)
         loss = self.objective(predicted, labels)

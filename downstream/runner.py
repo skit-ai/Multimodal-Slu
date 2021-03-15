@@ -5,7 +5,9 @@ import random
 import importlib
 from pathlib import Path
 from collections import defaultdict
-
+from transformers import BertTokenizer,BertModel,RobertaTokenizer,RobertaModel,XLMRobertaTokenizer, XLMRobertaModel, get_linear_schedule_with_warmup
+from transformers.optimization import AdamW
+from transformers import *
 import torch
 import torch.nn as nn
 import numpy as np
@@ -17,8 +19,15 @@ from schedulers import get_scheduler
 from utility.helper import count_parameters
 from sklearn.metrics import classification_report
 from pprint import pprint
+from transformers_utils import prepare_inputs_for_transformer_encoder
 
 SAMPLE_RATE = 16000
+
+MODEL_CLASSES = {
+    "bert": (BertModel,BertTokenizer,'bert-base-uncased'),
+    "roberta": (RobertaModel,RobertaTokenizer,'roberta-base'),
+    "xlm-roberta": (XLMRobertaModel,XLMRobertaTokenizer,'xlm-roberta-base'),
+}
 
 
 class Runner():
@@ -34,8 +43,12 @@ class Runner():
         self.init_ckpt = torch.load(self.args.past_exp, map_location='cpu') if self.args.past_exp else {}
         self.upstream = self._get_upstream()
         self.downstream = self._get_downstream()
+        pre_trained_model,pre_trained_tokenizer,model_name = MODEL_CLASSES["xlm-roberta"]
+        self.text_pretrained_model = pre_trained_model.from_pretrained(model_name)
+        self.text_tokenizer = pre_trained_tokenizer.from_pretrained(model_name)
         #getattr(importlib.import_module(f'downstream.{self.args.downstream}.dataset'), 'CLASSES') 
         self.classes = getattr(importlib.import_module(f'downstream.{self.args.downstream}.dataset'), 'CLASSES')
+
         #print(self.classes)
         # set up the downstream name used by Tensorboard
         self.downstream_name = self.args.downstream
@@ -167,9 +180,18 @@ class Runner():
                     else:
                         with torch.no_grad():
                             features = self.upstream(wavs)
+                    text_utteraces = others["text"]
+                    #text based module 
+                    input_ids = prepare_inputs_for_roberta(text_utteraces,self.text_tokenizer)
+                    outputs = self.text_pretrained_model(input_ids=input_ids,attention_mask=input_ids>0)
+                    
+                    #CLS Token featuere 
+                    sequence_output = outputs[0]
+                    cls_embedding = sequence_output[:, 0, :]
+                    
 
                     loss,_,_ = self.downstream(
-                        features, *others,
+                        audio_features,text_features, *others,
                         records = records,
                         logger = self.logger,
                         prefix = prefix,
