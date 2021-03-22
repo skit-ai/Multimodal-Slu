@@ -28,7 +28,9 @@ def audio_url_to_file(url,directory_name):
         save_path = directory_name + "/" + file_name
         open(save_path, 'wb').write(r.content)
         return save_path
-    return None     
+    else:
+        save_path = directory_name + "/" + file_name
+        return save_path  
 
 def main():
     args = docopt(__doc__)
@@ -45,13 +47,14 @@ def main():
         try:
             audio_url = json.loads(row[1])["audio_url"]
             intent_label = json.loads(row[2])[0]["type"]
-            audio_url_to_file(audio_url,job_id)
-            input_df.append([audio_url,intent_label])
+            path = audio_url_to_file(audio_url,job_id)
+            base_path = "scripts/"
+            input_df.append([base_path+path,intent_label])
         except:
             print(i)
             pass  
-    input_df = pd.DataFrame(input_df,columns=["audio_url","label"])           
-    input_df.to_csv(f"{jod_id}.csv")
+    input_df = pd.DataFrame(input_df,columns=["audio_path","label"])           
+    input_df.to_csv(f"{job_id}.csv", index=False)
 
 if __name__ == '__main__':
     main()

@@ -14,6 +14,8 @@ from torch.nn.utils.rnn import pad_sequence
 from .model import Model
 from .dataset import SpeechCommandsDataset, SpeechCommandsTestingDataset
 
+import pandas as pd
+from sklearn.model_selection import train_test_split
 
 class DownstreamExpert(nn.Module):
     """
@@ -26,16 +28,23 @@ class DownstreamExpert(nn.Module):
         self.upstream_dim = upstream_dim
         self.datarc = downstream_expert["datarc"]
         self.modelrc = downstream_expert["modelrc"]
-
-        train_list, valid_list = split_dataset(self.datarc["speech_commands_root"])
-
-        self.train_dataset = SpeechCommandsDataset(train_list, **self.datarc)
-        self.dev_dataset = SpeechCommandsDataset(valid_list, **self.datarc)
-        self.test_dataset = SpeechCommandsTestingDataset(**self.datarc)
+        # load csv here, do stratified split
+        df = pd.read_csv('/home/ml/pushkal/Multimodal-Slu/scripts/435.csv')
+        classes = df.label.unique().tolist()
+        print(classes)
+        import downstream.tog_speech.dataset as ds
+        setattr(ds, 'CLASSES', classes)
+        # add logic here to remove classes
+        train_df, test_df = train_test_split(df, test_size=0.15, random_state=42, stratify=df['label'])
+        train_list = train_df.values.tolist()
+        valid_list = test_df.values.tolist()
+        self.train_dataset = SpeechCommandsDataset(train_list, classes, **self.datarc)
+        self.dev_dataset = SpeechCommandsDataset(valid_list, classes, **self.datarc)
+        #self.test_dataset = SpeechCommandsTestingDataset(**self.datarc)
 
         self.model = Model(
             input_dim=upstream_dim,
-            output_class_num=self.train_dataset.class_num,
+            output_class_num=len(classes),
             **self.modelrc,
         )
         self.objective = nn.CrossEntropyLoss()
@@ -118,9 +127,6 @@ def split_dataset(
             continue
 
         for audio_path in entry.glob("*.wav"):
-            # get corresponding text path
-            #filename, file_extension = os.path.splitext(audio_path)
-            #text_path = filename + ".txt"
             speaker_hashed = re.sub(r"_nohash_.*$", "", audio_path.name)
             hashed_again = hashlib.sha1(speaker_hashed.encode("utf-8")).hexdigest()
             percentage_hash = (int(hashed_again, 16) % (max_uttr_per_class + 1)) * (
@@ -128,10 +134,10 @@ def split_dataset(
             )
 
             if percentage_hash < 10:
-                valid_list.append((entry.name, audio_path, entry.name))
+                valid_list.append((entry.name, audio_path))
             elif percentage_hash < 20:
                 pass  # testing set is discarded
             else:
-                train_list.append((entry.name, audio_path, entry.name))
+                train_list.append((entry.name, audio_path))
 
     return train_list, valid_list
