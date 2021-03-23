@@ -14,6 +14,8 @@ from torch.nn.utils.rnn import pad_sequence
 from .model import Model
 from .dataset import SpeechCommandsDataset, SpeechCommandsTestingDataset
 
+import pandas as pd
+from sklearn.model_selection import train_test_split
 
 class DownstreamExpert(nn.Module):
     """
@@ -26,16 +28,23 @@ class DownstreamExpert(nn.Module):
         self.upstream_dim = upstream_dim
         self.datarc = downstream_expert["datarc"]
         self.modelrc = downstream_expert["modelrc"]
-
-        train_list, valid_list = split_dataset(self.datarc["speech_commands_root"])
-
-        self.train_dataset = SpeechCommandsDataset(train_list, **self.datarc)
-        self.dev_dataset = SpeechCommandsDataset(valid_list, **self.datarc)
-        self.test_dataset = SpeechCommandsTestingDataset(**self.datarc)
+        # load csv here, do stratified split
+        df = pd.read_csv('/home/ml/pushkal/Multimodal-Slu/scripts/435.csv')
+        classes = df.label.unique().tolist()
+        print(classes)
+        import downstream.tog_speech.dataset as ds
+        setattr(ds, 'CLASSES', classes)
+        # add logic here to remove classes
+        train_df, test_df = train_test_split(df, test_size=0.15, random_state=42, stratify=df['label'])
+        train_list = train_df.values.tolist()
+        valid_list = test_df.values.tolist()
+        self.train_dataset = SpeechCommandsDataset(train_list, classes, **self.datarc)
+        self.dev_dataset = SpeechCommandsDataset(valid_list, classes, **self.datarc)
+        self.test_dataset = SpeechCommandsDataset(valid_list, classes, **self.datarc)
 
         self.model = Model(
             input_dim=upstream_dim,
-            output_class_num=self.train_dataset.class_num,
+            output_class_num=len(classes),
             **self.modelrc,
         )
         self.objective = nn.CrossEntropyLoss()

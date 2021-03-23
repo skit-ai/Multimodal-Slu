@@ -137,6 +137,7 @@ CMU_MOSI.zip
 libri_alignment.zip
 data
 corpora
+scripts/435
 
 # checkpoints
 *.ckpt
