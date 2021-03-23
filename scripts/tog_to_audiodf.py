@@ -20,6 +20,11 @@ from urllib.parse import urlparse
 import pandas as pd 
 from tqdm import tqdm 
 
+from torchaudio.sox_effects import apply_effects_file
+
+
+EFFECTS = [["channels", "1"], ["rate", "16000"], ["gain", "-3.0"]]
+
 def audio_url_to_file(url,directory_name):
     path = urlparse(url).path
     file_name = str(path[1:])
@@ -32,6 +37,18 @@ def audio_url_to_file(url,directory_name):
         save_path = directory_name + "/" + file_name
         return save_path  
 
+def flac2wav(flac_path):
+    # check if flac:
+    file_name, ext = os.path.splitext(flac_path)
+    if ext == '.flac':
+        command = "ffmpeg -i " + flac_path + " " + file_name + ".wav" 
+        os.system(command)
+        os.system("rm -rf " + flac_path)
+        new_path = file_name + ".wav"
+        return new_path
+    else:
+        return flac_path
+
 def main():
     args = docopt(__doc__)
     input_sqlite = args["--input_sqlite"]
@@ -43,18 +60,23 @@ def main():
     cur.execute("SELECT * FROM data")
     rows = cur.fetchall()
     input_df = []
+    num = 0
     for i,row in tqdm(enumerate(rows)):
         try:
             audio_url = json.loads(row[1])["audio_url"]
             intent_label = json.loads(row[2])[0]["type"]
             path = audio_url_to_file(audio_url,job_id)
+            path = flac2wav(path)
+            wav, _ = apply_effects_file(str(path), EFFECTS)
             base_path = "scripts/"
             input_df.append([base_path+path,intent_label])
         except:
+            num += 1
             print(i)
             pass  
     input_df = pd.DataFrame(input_df,columns=["audio_path","label"])           
     input_df.to_csv(f"{job_id}.csv", index=False)
+    print("total audios skipped :", num)
 
 if __name__ == '__main__':
     main()

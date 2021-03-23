@@ -40,7 +40,7 @@ class DownstreamExpert(nn.Module):
         valid_list = test_df.values.tolist()
         self.train_dataset = SpeechCommandsDataset(train_list, classes, **self.datarc)
         self.dev_dataset = SpeechCommandsDataset(valid_list, classes, **self.datarc)
-        #self.test_dataset = SpeechCommandsTestingDataset(**self.datarc)
+        self.test_dataset = SpeechCommandsDataset(valid_list, classes, **self.datarc)
 
         self.model = Model(
             input_dim=upstream_dim,
