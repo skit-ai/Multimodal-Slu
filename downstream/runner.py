@@ -163,7 +163,11 @@ class Runner():
 
                     wavs = [wav.to(self.args.device) for wav in wavs]
                     if self.args.upstream_trainable:
-                        features = self.upstream(wavs)
+                        try:
+                            features = self.upstream(wavs)
+                        except RuntimeError:
+                            print("Run time error")
+                            continue    
                     else:
                         with torch.no_grad():
                             features = self.upstream(wavs)
