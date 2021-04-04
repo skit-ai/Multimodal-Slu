@@ -153,3 +153,9 @@ scripts/435
 
 # CSV files 
 scripts/*.csv
+
+#sqlite files 
+scripts/*.sqlite
+
+#config files 
+downstream/*.yaml 	
