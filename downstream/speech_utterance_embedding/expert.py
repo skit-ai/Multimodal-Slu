@@ -2,6 +2,7 @@ import os
 import math
 import torch
 import random
+import numpy as np
 
 import torch
 import torch.nn as nn
@@ -64,12 +65,33 @@ class DownstreamExpert(nn.Module):
         self.distance_metric = lambda x, y: 1 - F.cosine_similarity(x, y)
 
 
-    def convert_to_triplet_df(self,df,max_Samples_per_class):
-        pass
+    def convert_to_triplet_df(self, df):
+        # ideal way is to create triplets on runtime, also keep unknown label class 
+        # to check semantic similarity, but for now lets create triplet df.
+        wavs, labels = df['audio_path'], df['label']
+        wavs = wavs.tolist()
+        labels = labels.tolist()
+        labels_set = set(labels)
+        label_to_wavs = {}
+        for label in labels_set:
+            wav = []
+            for i in range(len(labels)):
+                if labels[i] == label:
+                    wav.append(wavs[i])
+            label_to_wavs[label] = wav
 
-
-
-        # IPython.embed()
+        random_state = np.random.RandomState(29)
+        triplets = [
+            [
+                i, # anchor
+                random_state.choice(label_to_wavs[labels[i]]), # positive
+                random_state.choice(label_to_wavs[np.random.choice(
+                    list(labels_set - set([labels[i]]))
+                ) # negative
+            ])
+        ]
+        for i in range(len(wavs))]
+        return triplets
 
     def _get_train_dataloader(self, dataset):
         return DataLoader(
