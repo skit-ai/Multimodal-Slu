@@ -9,8 +9,8 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from torch.nn.utils.rnn import pad_sequence
 
-from downstream.speech_to_intent.model import Model
-from downstream.speech_to_intent.dataset import SpeechCommandsDataset
+from downstream.speech_utterance_embedding.model import Model
+from downstream.speech_utterance_embedding.dataset import SpeechCommandsDataset
 import pandas as pd
 from collections import Counter
 import IPython
@@ -44,11 +44,7 @@ class DownstreamExpert(nn.Module):
         self.datarc = downstream_expert['datarc']
         self.modelrc = downstream_expert['modelrc']
         df = pd.read_csv(self.datarc['file_path'])
-        triplet_df =  self.convert_to_triplet_df(df,max_Samples_per_class=10)
-        classes = df.label.unique().tolist()
-        print(classes)
-        import downstream.speech_to_intent.dataset as ds
-        setattr(ds, 'CLASSES', classes)
+        triplet_df =  self.convert_to_triplet_df(df)
         # add logic here to remove classes
         train_df, test_df = train_test_split(triplet_df, test_size=0.15, random_state=42)
         train_list = train_df.values.tolist()
@@ -83,7 +79,7 @@ class DownstreamExpert(nn.Module):
         random_state = np.random.RandomState(29)
         triplets = [
             [
-                i, # anchor
+                wavs[i], # anchor
                 random_state.choice(label_to_wavs[labels[i]]), # positive
                 random_state.choice(label_to_wavs[np.random.choice(
                     list(labels_set - set([labels[i]]))
@@ -91,7 +87,7 @@ class DownstreamExpert(nn.Module):
             ])
         ]
         for i in range(len(wavs))]
-        return triplets
+        return pd.DataFrame(triplets)
 
     def _get_train_dataloader(self, dataset):
         return DataLoader(

@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-df = pd.read_csv('train.csv')
+df = pd.read_csv('279.csv')
 
 
 def convert_to_triplet_df(df):
@@ -22,7 +22,7 @@ def convert_to_triplet_df(df):
     random_state = np.random.RandomState(29)
     triplets = [
         [
-            i, # anchor
+            wavs[i], # anchor
             random_state.choice(label_to_wavs[labels[i]]),
             random_state.choice(label_to_wavs[np.random.choice(
                 list(labels_set - set([labels[i]]))

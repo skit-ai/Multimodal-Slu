@@ -35,7 +35,7 @@ class Runner():
         self.upstream = self._get_upstream()
         self.downstream = self._get_downstream()
         #getattr(importlib.import_module(f'downstream.{self.args.downstream}.dataset'), 'CLASSES') 
-        self.classes = getattr(importlib.import_module(f'downstream.{self.args.downstream}.dataset'), 'CLASSES')
+        #self.classes = getattr(importlib.import_module(f'downstream.{self.args.downstream}.dataset'), 'CLASSES')
         #print(self.classes)
         # set up the downstream name used by Tensorboard
         self.downstream_name = self.args.downstream

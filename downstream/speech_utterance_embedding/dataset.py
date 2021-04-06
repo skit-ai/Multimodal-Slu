@@ -16,8 +16,8 @@ class SpeechCommandsBaseDataset(Dataset):
 
     def __getitem__(self, idx):
         anchor_audio_path,pos_audio_path,neg_audio_path = self.data[idx]
-        anchor_wav, _,pos_wav, _,neg_wav, _  = apply_effects_file(str(anchor_audio_path), EFFECTS),apply_effects_file(str(pos_audio_path), EFFECTS),apply_effects_file(str(neg_audio_path), EFFECTS)
-        anchor_wav, pos_wav, neg_wav = anchor_wav.squeeze(0), pos_wav.squeeze(0), neg_wav.squeeze(0)
+        anchor_wav ,pos_wav ,neg_wav  = apply_effects_file(str(anchor_audio_path), EFFECTS),apply_effects_file(str(pos_audio_path), EFFECTS),apply_effects_file(str(neg_audio_path), EFFECTS)
+        anchor_wav, pos_wav, neg_wav = anchor_wav[0].squeeze(0), pos_wav[0].squeeze(0), neg_wav[0].squeeze(0)
         return anchor_wav, pos_wav, neg_wav
 
     def __len__(self):
@@ -33,7 +33,7 @@ class SpeechCommandsDataset(SpeechCommandsBaseDataset):
     """Training and validation dataset."""
 
     def __init__(self, data_list, **kwargs):
-        super().__init__(classes)
+        super().__init__()
 
         self.data = data_list
 
