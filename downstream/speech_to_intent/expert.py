@@ -14,6 +14,7 @@ import pandas as pd
 from collections import Counter
 import IPython
 from sklearn.model_selection import train_test_split
+import yaml
 
 class DownstreamExpert(nn.Module):
     """
@@ -41,7 +42,17 @@ class DownstreamExpert(nn.Module):
         self.upstream_dim = upstream_dim
         self.datarc = downstream_expert['datarc']
         self.modelrc = downstream_expert['modelrc']
+        self.intent_alias_yaml = downstream_expert['datarc'].get('intent_alias')
+        self.alias_config = None 
+        self.min_class_count = downstream_expert['datarc']['min_class_count']
         df = pd.read_csv(self.datarc['file_path'])
+        if self.intent_alias_yaml is not None:
+            print(self.intent_alias_yaml)
+            with open(self.intent_alias_yaml) as file:
+                self.alias_config = yaml.load(file, Loader=yaml.FullLoader)
+            df['label'] =  df['label'].apply(lambda x:self.map_intent(x,self.alias_config))
+            df = df.dropna() 
+            df = df[df.groupby('label')['label'].transform('count').ge(self.min_class_count)]
         classes = df.label.unique().tolist()
         print(classes)
         import downstream.speech_to_intent.dataset as ds
@@ -59,6 +70,21 @@ class DownstreamExpert(nn.Module):
 
         self.model = Model(input_dim=self.modelrc['input_dim'], agg_module=self.modelrc['agg_module'],output_dim=len(classes), config=self.modelrc)
         self.objective = nn.CrossEntropyLoss()
+
+
+    def map_intent(self,intent,intent_config):
+        if intent_config is None:
+            return intent
+        if intent_config.get("intent_alias"):    
+            for intent_key in intent_config["intent_alias"].keys():
+                for candidate_intent in intent_config["intent_alias"][intent_key]:
+                    if (candidate_intent == intent) and (intent_key in intent_config["pick_intents"]):
+                        return intent_key
+        if intent in intent_config["pick_intents"]:    #return intent when intent is in pick intents 
+            return intent
+
+        return None      # return None when intent not in pick intents     
+
 
     def get_dataset(self):
         self.base_path = self.datarc['file_path']

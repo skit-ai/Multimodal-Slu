@@ -23,10 +23,13 @@ scheduler:
 
 downstream_expert:
   datarc:
-    file_path: /home/ml/karthik/Multimodal-Slu/scripts/435.csv
+    file_path: /home/ml/karthik/Multimodal-Slu/scripts/1.csv
     num_workers: 12
     train_batch_size: 1
     eval_batch_size: 1
+    intent_alias: /home/ml/karthik/Multimodal-Slu/downstream/speech_to_intent/intent-alias.yaml
+    #pick classes with minimum of below count
+    min_class_count: 1000 
 
   modelrc:
     module:
