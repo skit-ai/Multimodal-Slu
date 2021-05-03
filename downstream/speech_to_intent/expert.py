@@ -45,32 +45,45 @@ class DownstreamExpert(nn.Module):
         self.intent_alias_yaml = downstream_expert['datarc'].get('intent_alias')
         self.alias_config = None 
         self.min_class_count = downstream_expert['datarc']['min_class_count']
-        df = pd.read_csv(self.datarc['file_path'])
+        train_df = pd.read_csv(self.datarc['train_file_path'])[["audio_path","label"]]
+        print(train_df.head())
+        test_df =  pd.read_csv(self.datarc['test_file_path'])[["audio_path","label"]]
+        dev_df = pd.read_csv(self.datarc['dev_file_path'])[["audio_path","label"]]
         if self.intent_alias_yaml is not None:
-            print(self.intent_alias_yaml)
             with open(self.intent_alias_yaml) as file:
                 self.alias_config = yaml.load(file, Loader=yaml.FullLoader)
-            df['label'] =  df['label'].apply(lambda x:self.map_intent(x,self.alias_config))
-            df = df.dropna() 
-            df = df[df.groupby('label')['label'].transform('count').ge(self.min_class_count)]
-        classes = df.label.unique().tolist()
-        print(classes)
+            train_df = self.intent_alias(train_df)
+            test_df = self.intent_alias(test_df)
+            dev_df = self.intent_alias(dev_df)  
+
+        classes = train_df.label.unique().tolist()
+        #rint(classes)
         import downstream.speech_to_intent.dataset as ds
         setattr(ds, 'CLASSES', classes)
         # add logic here to remove classes
-        train_df, test_df = train_test_split(df, test_size=0.15, random_state=42, stratify=df['label'])
+        #train_df, test_df = train_test_split(df, test_size=0.15, random_state=42, stratify=df['label'])
+        #train_df = test_df = df
+        train_df.to_csv(f"data/train_{self.min_class_count}.csv")
+        test_df.to_csv(f"data/test_{self.min_class_count}.csv")
         train_list = train_df.values.tolist()
-        valid_list = test_df.values.tolist()
-
+        test_list = test_df.values.tolist()
+        dev_list = dev_df.values.tolist()
+        
         self.train_dataset = SpeechCommandsDataset(train_list, classes, **self.datarc)
-        self.dev_dataset = SpeechCommandsDataset(valid_list, classes, **self.datarc)
-        self.test_dataset = SpeechCommandsDataset(valid_list, classes, **self.datarc)
-
+        self.dev_dataset = SpeechCommandsDataset(dev_list, classes, **self.datarc)
+        self.test_dataset = SpeechCommandsDataset(test_list, classes, **self.datarc)
+        
         self.connector = nn.Linear(upstream_dim, self.modelrc['input_dim'])
-
+        
         self.model = Model(input_dim=self.modelrc['input_dim'], agg_module=self.modelrc['agg_module'],output_dim=len(classes), config=self.modelrc)
         self.objective = nn.CrossEntropyLoss()
 
+
+    def intent_alias(self,df):
+        df['label'] =  df['label'].apply(lambda x:self.map_intent(x,self.alias_config))
+        df = df.dropna() 
+        df = df[df.groupby('label')['label'].transform('count').ge(self.min_class_count)]
+        return df
 
     def map_intent(self,intent,intent_config):
         if intent_config is None:
