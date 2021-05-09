@@ -15,6 +15,7 @@ from collections import Counter
 import IPython
 from sklearn.model_selection import train_test_split
 import yaml
+import torch.nn.functional as nnf
 
 class DownstreamExpert(nn.Module):
     """
@@ -241,7 +242,6 @@ class DownstreamExpert(nn.Module):
 
         features_pad = self.connector(features_pad)
         intent_logits = self.model(features_pad, attention_mask_pad.cuda())
-
         intent_loss = 0
         start_index = 0
         predicted_intent = []
@@ -261,8 +261,10 @@ class DownstreamExpert(nn.Module):
             # some evaluation-only processing, eg. decoding
             #IPython.embed()
             pass
-
-        return intent_loss,predicted_intent.cpu().float().tolist(),labels.cpu().float().tolist()
+        prob = nnf.softmax(intent_logits, dim=1)
+        top_p, top_class = prob.topk(1, dim = 1)    
+        #print(predicted_intent.cpu().float().tolist(),labels.cpu().float().tolist())
+        return intent_loss,predicted_intent.cpu().float().tolist(),labels.cpu().float().tolist(),top_p.cpu().float().tolist()
 
     # interface
     def log_records(self, records, logger, prefix, global_step, **kwargs):

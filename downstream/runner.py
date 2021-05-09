@@ -172,7 +172,7 @@ class Runner():
                         with torch.no_grad():
                             features = self.upstream(wavs)
 
-                    loss,_,_ = self.downstream(
+                    loss,_,_,_ = self.downstream(
                         features, *others,
                         records = records,
                         logger = self.logger,
@@ -306,6 +306,7 @@ class Runner():
         all_loss = []
         all_labels = []
         all_predictions = []
+        all_confidence_scores = []
         records = defaultdict(list)
         prefix = f'{self.downstream_name}/{split}-'
 
@@ -315,7 +316,7 @@ class Runner():
             with torch.no_grad():
                 features = self.upstream(wavs)
 
-                loss, predicted_classid, labels = self.downstream(
+                loss, predicted_classid,labels,confidence_scores = self.downstream(
                     features, *others,
                     records = records,
                     logger = self.logger,
@@ -328,7 +329,8 @@ class Runner():
                 all_loss.append(loss.item())
                 all_labels.extend(labels)
                 all_predictions.extend(predicted_classid)
-        
+                all_confidence_scores.extend(confidence_scores[0])
+                
         #Print sklearn classification report
         pprint(classification_report(all_labels,all_predictions,target_names=self.classes))
         # log loss
