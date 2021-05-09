@@ -3,6 +3,7 @@ import math
 import glob
 import random
 import importlib
+import pandas as pd
 from pathlib import Path
 from collections import defaultdict
 
@@ -307,6 +308,7 @@ class Runner():
         all_labels = []
         all_predictions = []
         all_confidence_scores = []
+        all_audio_paths = []
         records = defaultdict(list)
         prefix = f'{self.downstream_name}/{split}-'
 
@@ -316,7 +318,7 @@ class Runner():
             with torch.no_grad():
                 features = self.upstream(wavs)
 
-                loss, predicted_classid,labels,confidence_scores = self.downstream(
+                loss, predicted_classid,labels,audio_paths,confidence_scores = self.downstream(
                     features, *others,
                     records = records,
                     logger = self.logger,
@@ -330,13 +332,26 @@ class Runner():
                 all_labels.extend(labels)
                 all_predictions.extend(predicted_classid)
                 all_confidence_scores.extend(confidence_scores[0])
-                
+                all_audio_paths.extend(audio_paths)
         #Print sklearn classification report
         pprint(classification_report(all_labels,all_predictions,target_names=self.classes))
         # log loss
         average_loss = torch.FloatTensor(all_loss).mean().item()
         self.logger.add_scalar(f'{prefix}loss', average_loss, global_step=global_step)
         all_loss = []
+
+        errors = []
+        for i, (pred_label, true_label) in enumerate(zip(all_predictions, all_labels)):
+            if pred_label != true_label:
+                errors.append(
+                    [
+                        all_audio_paths[i],
+                        true_label, 
+                        pred_label,
+                    ]
+                )
+        errors = pd.DataFrame(errors, columns=['audio_path', 'true_label', 'pred_label'])
+        errors.to_csv(self.args.expdir + '/errors.csv')
 
         # log customized contents
         save_names = self.downstream.log_records(

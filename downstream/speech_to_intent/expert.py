@@ -186,7 +186,7 @@ class DownstreamExpert(nn.Module):
         return self._get_eval_dataloader(self.test_dataset)
 
     # Interface
-    def forward(self, features, labels,
+    def forward(self, features, labels, audio_paths,
                 records=None, logger=None, prefix=None, global_step=0, **kwargs):
         """
         This function will be used in both train/dev/test, you can use
@@ -264,7 +264,7 @@ class DownstreamExpert(nn.Module):
         prob = nnf.softmax(intent_logits, dim=1)
         top_p, top_class = prob.topk(1, dim = 1)    
         #print(predicted_intent.cpu().float().tolist(),labels.cpu().float().tolist())
-        return intent_loss,predicted_intent.cpu().float().tolist(),labels.cpu().float().tolist(),top_p.cpu().float().tolist()
+        return intent_loss,predicted_intent.cpu().float().tolist(),labels.cpu().float().tolist(),audio_paths,top_p.cpu().float().tolist()
 
     # interface
     def log_records(self, records, logger, prefix, global_step, **kwargs):

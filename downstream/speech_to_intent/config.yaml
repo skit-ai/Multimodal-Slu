@@ -23,9 +23,10 @@ scheduler:
 
 downstream_expert:
   datarc:
-    train_file_path: /root/ml/karthik/Multimodal-Slu/scripts/331_1.csv
-    test_file_path: /root/ml/karthik/Multimodal-Slu/scripts/331_1_test.csv
-    dev_file_path: /root/ml/karthik/Multimodal-Slu/scripts/331_1_dev.csv
+    train_file_path: /root/pushkal/Multimodal-Slu/scripts/672.csv
+    test_file_path: /root/pushkal/Multimodal-Slu/scripts/672.csv
+    dev_file_path: /root/pushkal/Multimodal-Slu/scripts/672.csv
+    intent_alias: /root/pushkal/Multimodal-Slu/downstream/speech_to_intent/435-alias.yaml
     # add train test file path
     num_workers: 12
     train_batch_size: 1
