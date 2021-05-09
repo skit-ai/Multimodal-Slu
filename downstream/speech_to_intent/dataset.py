@@ -20,15 +20,15 @@ class SpeechCommandsBaseDataset(Dataset):
         audio_path, class_name = self.data[idx]
         wav, _ = apply_effects_file(str(audio_path), EFFECTS)
         wav = wav.squeeze(0)
-        return wav, self.class2index[class_name]
+        return wav, self.class2index[class_name], audio_path
 
     def __len__(self):
         return len(self.data)
 
     def collate_fn(self, samples):
         """Collate a mini-batch of data."""
-        wavs, labels = zip(*samples)
-        return wavs, labels
+        wavs, labels, audio_paths = zip(*samples)
+        return wavs, labels, audio_paths
 
 
 class SpeechCommandsDataset(SpeechCommandsBaseDataset):
@@ -49,14 +49,14 @@ class SpeechCommandsDataset(SpeechCommandsBaseDataset):
         self.sample_weights = sample_weights
 
     def __getitem__(self, idx):
-        wav, label = super().__getitem__(idx)
+        wav, label, audio_path = super().__getitem__(idx)
         '''
         # _silence_ audios are longer than 1 sec.
         if label == self.class2index["_silence_"]:
             random_offset = randint(0, len(wav) - 16000)
             wav = wav[random_offset : random_offset + 16000]
         '''
-        return wav, label
+        return wav, label, audio_path
 
 
 class SpeechCommandsTestingDataset(SpeechCommandsBaseDataset):
