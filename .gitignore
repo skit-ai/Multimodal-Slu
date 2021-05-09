@@ -150,6 +150,8 @@ scripts/435
 *.sh
 *.pt
 *.tar
+*.h5
+*.p
 
 # CSV files 
 scripts/*.csv
@@ -159,3 +161,18 @@ scripts/*.sqlite
 
 #config files 
 downstream/*.yaml 	
+
+# JSON Files
+scripts/*.json
+
+# VAI Folders
+scripts/1
+scripts/331_1
+scripts/331_1_dev
+scripts/331_1_test
+scripts/435_postlive
+scripts/672
+scripts/postlive
+
+# Test WAV Files
+scripts/*.wav
